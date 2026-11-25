@@ -559,6 +559,27 @@ describe('entities from repeats', () => {
   });
 
   describe('matching form fields with datasets', () => {
+    it('should not treat a field whose name starts with a repeat name as inside the repeat', () => {
+      const datasets = [{ name: 'households', actions: ['create'], path: '/data/' }];
+      const fields = [
+        { name: 'member', order: 0, path: '/data/member', type: 'repeat' },
+        { name: 'm_name', order: 1, path: '/data/member/m_name', type: 'string' },
+        { name: 'member_count', order: 2, path: '/data/member_count', type: 'string', propertyName: 'member_count' }
+      ];
+      const res = matchFieldsWithDatasets(datasets, fields);
+      res.length.should.equal(1);
+      res[0].fields.map(f => f.path).should.eql(['/data/member_count']);
+    });
+
+    it('should still reject a saveto field that is inside a repeat when the dataset is outside it', () => {
+      const datasets = [{ name: 'households', actions: ['create'], path: '/data/' }];
+      const fields = [
+        { name: 'member', order: 0, path: '/data/member', type: 'repeat' },
+        { name: 'm_name', order: 1, path: '/data/member/m_name', type: 'string', propertyName: 'm_name' }
+      ];
+      (() => matchFieldsWithDatasets(datasets, fields)).should.throw(/Cannot save properties from a repeat/);
+    });
+
     it('should match fields with dataset inside a repeat', async () => {
       const ds = await getDatasets(testData.forms.repeatEntityTrees);
       const ff = await getFormFields(testData.forms.repeatEntityTrees);

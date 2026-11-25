@@ -117,6 +117,28 @@ describe('Entities from Repeats', () => {
     }));
   });
 
+  describe('fields whose names start with a repeat name', () => {
+    it('should accept a saveto field outside a repeat whose name starts with the repeat name', testService(async (service) => {
+      const asAlice = await service.login('alice');
+      const xml = testData.forms.simpleEntity
+        .replace('<hometown/>', '<hometown/><member jr:template=""><m_name/></member><member_count/>')
+        .replace('<bind nodeset="/data/hometown" type="string"/>',
+          '<bind nodeset="/data/hometown" type="string"/><bind nodeset="/data/member/m_name" type="string"/><bind nodeset="/data/member_count" type="string" calculate="count(/data/member)" entities:saveto="member_count"/>')
+        .replace('</h:head>', '</h:head><h:body><repeat nodeset="/data/member"><input ref="/data/member/m_name"/></repeat></h:body>');
+
+      await asAlice.post('/v1/projects/1/forms?publish=true')
+        .send(xml)
+        .set('Content-Type', 'application/xml')
+        .expect(200);
+
+      await asAlice.get('/v1/projects/1/datasets/people')
+        .expect(200)
+        .then(({ body }) => {
+          body.properties.map(p => p.name).should.eql(['first_name', 'age', 'member_count']);
+        });
+    }));
+  });
+
   describe('submitting forms and submissions', () => {
     it('should send form and submission that collects entities for multiple trees in a repeat group', testService(async (service) => {
       const asAlice = await service.login('alice');
